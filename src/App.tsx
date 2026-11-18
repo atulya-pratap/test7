@@ -882,10 +882,9 @@ export default function App() {
 
       if (waypointId === 'reveal') {
         setStage('final_reveal');
-      } else if (stage === 'final_reveal') {
+      } else {
         setStage('exploring');
       }
-
       setActiveWaypoint(waypointId);
       if (audioRef.current) audioRef.current.playSparkle();
 
@@ -2047,27 +2046,33 @@ export default function App() {
       keysPressed[e.code] = false;
     };
 
+    renderer.domElement.style.touchAction = 'none';
+    let activePointerId = null;
     let pointerDownPos = { x: 0, y: 0 };
     let lastPointerPos = { x: 0, y: 0 };
 
     const handlePointerDown = (e) => {
       if (e.target !== renderer.domElement) return;
       sceneObjectsRef.current.isDraggingLook = true;
+      activePointerId = e.pointerId;
       pointerDownPos = { x: e.clientX, y: e.clientY };
       lastPointerPos = { x: e.clientX, y: e.clientY };
     };
 
     const handlePointerMove = (e) => {
-      if (!sceneObjectsRef.current.isDraggingLook) return;
+      if (!sceneObjectsRef.current.isDraggingLook || e.pointerId !== activePointerId) return;
       const dx = e.clientX - lastPointerPos.x;
       const dy = e.clientY - lastPointerPos.y;
       lastPointerPos = { x: e.clientX, y: e.clientY };
 
-      const sc = sceneObjectsRef.current;
-      sc.playerYaw -= dx * 0.0032;
-      sc.playerPitch = Math.max(-0.55, Math.min(0.55, sc.playerPitch - dy * 0.0025));
-    };
+      const isTouch = e.pointerType === 'touch';
+      const yawSpeed = isTouch ? 0.0095 : 0.0032;
+      const pitchSpeed = isTouch ? 0.007 : 0.0025;
 
+      const sc = sceneObjectsRef.current;
+      sc.playerYaw -= dx * yawSpeed;
+      sc.playerPitch = Math.max(-0.55, Math.min(0.55, sc.playerPitch - dy * pitchSpeed));
+    };
     const raycaster = new THREE.Raycaster();
     const mouseVec = new THREE.Vector2();
 
@@ -2389,7 +2394,8 @@ export default function App() {
       ==================================================================== */}
       <div
         ref={mountRef}
-        className={`w-full h-full transition-all duration-700 ${
+        style={{ touchAction: 'none' }}
+        className={`w-full h-full touch-none transition-all duration-700 ${
           activeMemoryIndex !== null ||
           portraitModalOpen ||
           activePlaque !== null ||
@@ -2635,52 +2641,63 @@ export default function App() {
       {/* ====================================================================
           MOBILE / TOUCH VIRTUAL JOYSTICK D-PAD (BOTTOM LEFT)
       ==================================================================== */}
-      {stage === 'exploring' && (
-        <div className="fixed bottom-20 left-4 z-30 flex flex-col items-center gap-1 sm:opacity-80 hover:opacity-100">
+      {stage !== 'invitation' && stage !== 'final_reveal' && (
+        <div
+          style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+          onContextMenu={(e) => e.preventDefault()}
+          className="fixed bottom-14 left-3 z-40 flex flex-col items-center gap-1.5 pointer-events-auto"
+        >
           <button
-            onPointerDown={() => setMobileMove(1, 0)}
+            type="button"
+            onPointerDown={(e) => { e.preventDefault(); setMobileMove(1, 0); }}
             onPointerUp={() => setMobileMove(0, 0)}
+            onPointerCancel={() => setMobileMove(0, 0)}
             onPointerLeave={() => setMobileMove(0, 0)}
-            className="w-9 h-9 rounded-sm bg-[#24050e]/85 border border-[#d4af37]/60 flex items-center justify-center text-[#f3e5ab] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
+            className="w-11 h-11 rounded-sm bg-[#24050e]/95 border-2 border-[#d4af37] flex items-center justify-center text-base text-[#f3e5ab] shadow-[0_0_15px_rgba(0,0,0,0.9)] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
             title="Walk Forward (W)"
           >
             ▲
           </button>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <button
-              onPointerDown={() => setMobileMove(0, -1)}
+              type="button"
+              onPointerDown={(e) => { e.preventDefault(); setMobileMove(0, -1); }}
               onPointerUp={() => setMobileMove(0, 0)}
+              onPointerCancel={() => setMobileMove(0, 0)}
               onPointerLeave={() => setMobileMove(0, 0)}
-              className="w-9 h-9 rounded-sm bg-[#24050e]/85 border border-[#d4af37]/60 flex items-center justify-center text-[#f3e5ab] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
+              className="w-11 h-11 rounded-sm bg-[#24050e]/95 border-2 border-[#d4af37] flex items-center justify-center text-base text-[#f3e5ab] shadow-[0_0_15px_rgba(0,0,0,0.9)] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
               title="Step Left (A)"
             >
               ◀
             </button>
             <button
-              onPointerDown={() => setMobileMove(-1, 0)}
+              type="button"
+              onPointerDown={(e) => { e.preventDefault(); setMobileMove(-1, 0); }}
               onPointerUp={() => setMobileMove(0, 0)}
+              onPointerCancel={() => setMobileMove(0, 0)}
               onPointerLeave={() => setMobileMove(0, 0)}
-              className="w-9 h-9 rounded-sm bg-[#24050e]/85 border border-[#d4af37]/60 flex items-center justify-center text-[#f3e5ab] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
+              className="w-11 h-11 rounded-sm bg-[#24050e]/95 border-2 border-[#d4af37] flex items-center justify-center text-base text-[#f3e5ab] shadow-[0_0_15px_rgba(0,0,0,0.9)] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
               title="Walk Backward (S)"
             >
               ▼
             </button>
             <button
-              onPointerDown={() => setMobileMove(0, 1)}
+              type="button"
+              onPointerDown={(e) => { e.preventDefault(); setMobileMove(0, 1); }}
               onPointerUp={() => setMobileMove(0, 0)}
+              onPointerCancel={() => setMobileMove(0, 0)}
               onPointerLeave={() => setMobileMove(0, 0)}
-              className="w-9 h-9 rounded-sm bg-[#24050e]/85 border border-[#d4af37]/60 flex items-center justify-center text-[#f3e5ab] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
+              className="w-11 h-11 rounded-sm bg-[#24050e]/95 border-2 border-[#d4af37] flex items-center justify-center text-base text-[#f3e5ab] shadow-[0_0_15px_rgba(0,0,0,0.9)] active:bg-[#d4af37] active:text-[#24050e] cursor-pointer"
               title="Step Right (D)"
             >
               ▶
             </button>
           </div>
-          <span className="text-[10px] tracking-widest uppercase text-[#f3e5ab]/70 mt-0.5">
-            WASD / Drag Look
+          <span className="text-[10px] tracking-widest uppercase text-[#f3e5ab] bg-[#1a040a]/80 px-1.5 py-0.5 rounded">
+            Move / Drag Look
           </span>
         </div>
       )}
-
       {/* ====================================================================
           SCENE 4 MODAL — THE ROYAL GALLERY OF MEMORIES CARD VIEWER
       ==================================================================== */}
